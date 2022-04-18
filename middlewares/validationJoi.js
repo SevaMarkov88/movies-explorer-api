@@ -11,7 +11,7 @@ module.exports.userValidation = celebrate({
       if (validator.isURL(value, { require_protocol: true })) {
         return value;
       }
-      return helpers.message('Невалидная ссылка');
+      return helpers.message(message, 'Невалидная ссылка');
     }),
   }),
 });
@@ -30,7 +30,7 @@ module.exports.movieValidation = celebrate({
       if (validator.isURL(value, { require_protocol: true })) {
         return value;
       }
-      return helpers.message('Невалидная ссылка');
+      return helpers.message(message,'Невалидная ссылка');
     }),
   }),
 });
