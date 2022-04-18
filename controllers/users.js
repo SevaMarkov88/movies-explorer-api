@@ -1,0 +1,96 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const User = require('../model/user');
+const BadRequestError = require('../errors/BadRequestError');
+const ExistingEmailError = require('../errors/ExistingEmailError');
+
+module.exports.getUser = (req, res, next) => {
+  User.findById(req.user._id)
+    .then((user) => res.status(200).send(user))
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        next(new BadRequestError('Переданы некорректные данные.'));
+      } else {
+        next(err);
+      }
+    });
+};
+
+module.exports.createUser = (req, res, next) => {
+  const {
+    name,
+    email,
+    password,
+  } = req.body;
+
+  bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      name,
+      email,
+      password: hash,
+    }))
+
+    .then((user) => User.findOne({ _id: user._id }))
+    .then((user) => {
+      res.status(200).send({ user });
+    })
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        next(new BadRequestError('Переданы некорректные данные.'));
+      } else if (err.code === 11000) {
+        next(new ExistingEmailError('Данный email уже существует в базе данных'));
+      } else {
+        next(err);
+      }
+    });
+};
+
+module.exports.updateUserInfo = (req, res, next) => {
+  const {
+    name,
+    email,
+  } = req.body;
+
+  User.findByIdAndUpdate(
+    req.user._id,
+    {
+      name,
+      email,
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  )
+    .then((user) => {
+      if (user) {
+        res.status(200).send({ data: user });
+      } else {
+        next(new BadRequestError('Переданы некорректные данные.'));
+      }
+    })
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        next(new BadRequestError('Переданы некорректные данные.'));
+      } else {
+        next(err);
+      }
+    });
+};
+
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
+      res
+        .cookie('jwt', token, {
+          maxAge: 3600000 * 24 * 7,
+          httpOnly: true,
+          sameSite: true,
+        });
+      res.status(201).send({ message: 'Login successful' });
+    })
+    .catch(next);
+};
