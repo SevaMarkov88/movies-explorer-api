@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
 const { errors } = require('celebrate');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
@@ -10,12 +11,13 @@ const { userValidation, loginValidation } = require('./middlewares/validationJoi
 const { requestLogger, errorLogger } = require('./middlewares/logger');
 
 const { PORT = 3000 } = process.env;
+const { NODE_ENV, BASE_URL } = process.env;
 const app = express();
 
-mongoose.connect('mongodb://localhost:27017/bitfilmsdb', {
+app.use(cors());
+
+mongoose.connect(NODE_ENV === 'production' ? BASE_URL : 'mongodb://localhost:27017/bitfilmsdb', {
   useNewUrlParser: true,
-}, (err) => {
-  if (err) throw err;
 });
 
 app.use(bodyParser.json());

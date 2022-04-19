@@ -27,7 +27,7 @@ const movieSchema = new mongoose.Schema({
     required: true,
     validate: {
       validator: (v) => isURL(v, { required_protocol: true }),
-      message: "Поле не соответствует требуемому формату URL",
+      message: 'Поле не соответствует требуемому формату URL',
     },
   },
   trailerLink: {
@@ -35,7 +35,7 @@ const movieSchema = new mongoose.Schema({
     required: true,
     validate: {
       validator: (v) => isURL(v, { required_protocol: true }),
-      message: "Поле не соответствует требуемому формату URL",
+      message: 'Поле не соответствует требуемому формату URL',
     },
   },
   thumbnail: {
@@ -43,7 +43,7 @@ const movieSchema = new mongoose.Schema({
     required: true,
     validate: {
       validator: (v) => isURL(v, { required_protocol: true }),
-      message: "Поле не соответствует требуемому формату URL",
+      message: 'Поле не соответствует требуемому формату URL',
     },
   },
   owner: {
