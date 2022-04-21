@@ -35,14 +35,15 @@ module.exports.movieValidation = celebrate({
       }
       return helpers.message('Невалидная ссылка');
     }),
-    thumbnails: Joi.string().required().custom((value, helpers) => {
+    thumbnail: Joi.string().required().custom((value, helpers) => {
       if (validator.isURL(value, { require_protocol: true })) {
         return value;
       }
       return helpers.message('Невалидная ссылка');
     }),
-    nameRu: Joi.string().required(),
-    nameEn: Joi.string().required(),
+    nameRU: Joi.string().required(),
+    nameEN: Joi.string().required(),
+    movieId: Joi.number().required(),
   }),
 });
 
