@@ -42,22 +42,13 @@ module.exports.createUser = (req, res, next) => {
 };
 
 module.exports.updateUserInfo = (req, res, next) => {
-  const {
-    name,
-    email,
-  } = req.body;
+  const { name, email } = req.body;
+  const owner = req.user._id;
 
   User.findByIdAndUpdate(
-    req.user._id,
-    {
-      name,
-      email,
-    },
-    {
-      new: true,
-      runValidators: true,
-      upsert: false,
-    },
+    owner,
+    { name, email },
+    { new: true, runValidators: true },
   )
     .then((user) => {
       if (user) {
