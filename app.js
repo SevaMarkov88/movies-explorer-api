@@ -4,11 +4,13 @@ const cors = require('cors');
 const { errors } = require('celebrate');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
 const router = require('./routes/index');
 const { login, createUser } = require('./controllers/users');
 const errorHandler = require('./middlewares/errorHandler');
 const { userValidation, loginValidation } = require('./middlewares/validationJoi');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
+const limiter = require('./middlewares/limiter');
 
 const { PORT = 3000 } = process.env;
 const { NODE_ENV, BASE_URL } = process.env;
@@ -24,6 +26,8 @@ app.use(bodyParser.json());
 app.use(express.json());
 app.use(cookieParser());
 app.use(requestLogger);
+app.use(helmet());
+app.use(limiter);
 
 app.post('/signin', loginValidation, login);
 app.post('/signup', userValidation, createUser);
