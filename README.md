@@ -1,6 +1,6 @@
 # react-mesto-api-full
 Репозиторий для дипломного проекта, включающий фронтенд и бэкенд части приложения.
 
-Проект доступен по адресу https://movies.markov.nomoredomains.work/
+Проект доступен по адресу http://movies.markov.nomoredomains.work/
 
 ip адрес сервера 51.250.106.82

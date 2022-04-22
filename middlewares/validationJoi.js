@@ -5,7 +5,7 @@ module.exports.userValidation = celebrate({
   body: Joi.object().keys({
     email: Joi.string().required().email(),
     password: Joi.string().required().min(8),
-    name: Joi.string().min(2).max(30),
+    name: Joi.string().required().min(2).max(30),
   }),
 });
 
@@ -27,29 +27,30 @@ module.exports.movieValidation = celebrate({
       if (validator.isURL(value, { require_protocol: true })) {
         return value;
       }
-      return helpers.message(message,'Невалидная ссылка');
+      return helpers.message('Невалидная ссылка');
     }),
     trailerLink: Joi.string().required().custom((value, helpers) => {
       if (validator.isURL(value, { require_protocol: true })) {
         return value;
       }
-      return helpers.message(message,'Невалидная ссылка');
+      return helpers.message('Невалидная ссылка');
     }),
-    thumbnails: Joi.string().required().custom((value, helpers) => {
+    thumbnail: Joi.string().required().custom((value, helpers) => {
       if (validator.isURL(value, { require_protocol: true })) {
         return value;
       }
-      return helpers.message(message,'Невалидная ссылка');
+      return helpers.message('Невалидная ссылка');
     }),
-    nameRu: Joi.string().required(),
-    nameEn: Joi.string().required(),
+    nameRU: Joi.string().required(),
+    nameEN: Joi.string().required(),
+    movieId: Joi.number().required(),
   }),
 });
 
 module.exports.userUpdateValidation = celebrate({
   body: Joi.object().keys({
     name: Joi.string().required().min(2).max(30),
-    email: Joi.string().required().min(2).max(30),
+    email: Joi.string().required().email(),
   }),
 });
 
