@@ -15,8 +15,19 @@ const limiter = require('./middlewares/limiter');
 const { PORT = 3000 } = process.env;
 const { NODE_ENV, BASE_URL } = process.env;
 const app = express();
-
-app.use(cors());
+const options = {
+  origin: [
+    'http://movies.markov.nomoredomains.work',
+    'http://app.movies.markov.nomoredomains.work',
+    'http://localhost:3000',
+  ],
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+  allowedHeaders: ['Content-Type', 'origin', 'Authorization'],
+  credentials: true,
+};
+app.use('*', cors(options));
 
 mongoose.connect(NODE_ENV === 'production' ? BASE_URL : 'mongodb://localhost:27017/bitfilmsdb', {
   useNewUrlParser: true,
