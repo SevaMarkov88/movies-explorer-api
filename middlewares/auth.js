@@ -1,27 +1,27 @@
-require('dotenv').config();
-
-const { JWT_SECRET } = process.env;
 const jwt = require('jsonwebtoken');
-const UnauthorizedError = require('../errors/unauthorized-error');
-const errorMessages = require('../errors/messages');
 
-const auth = (req, res, next) => {
+// eslint-disable-next-line consistent-return
+module.exports = (req, res, next) => {
   const { authorization } = req.headers;
 
   if (!authorization || !authorization.startsWith('Bearer ')) {
-    throw new UnauthorizedError(errorMessages.unauthorized);
+    return res
+      .status(401)
+      .send({ message: 'Необходима авторизация' });
   }
 
   const token = authorization.replace('Bearer ', '');
   let payload;
+
   try {
-    payload = jwt.verify(token, JWT_SECRET);
+    payload = jwt.verify(token, 'some-secret-key');
   } catch (err) {
-    throw new UnauthorizedError(errorMessages.unauthorized);
+    return res
+      .status(401)
+      .send({ message: 'Необходима авторизация' });
   }
 
-  req.user = payload;
-  next();
-};
+  req.user = payload; // записываем пейлоуд в объект запроса
 
-module.exports = auth;
+  next(); // пропускаем запрос дальше
+};
