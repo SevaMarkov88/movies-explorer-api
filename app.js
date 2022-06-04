@@ -1,54 +1,37 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const { errors } = require('celebrate');
-const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
-const router = require('./routes/index');
-const { login, createUser } = require('./controllers/users');
-const errorHandler = require('./middlewares/errorHandler');
-const { userValidation, loginValidation } = require('./middlewares/validationJoi');
-const { requestLogger, errorLogger } = require('./middlewares/logger');
+const { errors } = require('celebrate');
 const limiter = require('./middlewares/limiter');
+const routes = require('./routes');
+const serverErrorHandler = require('./middlewares/serverErrorHandler');
+const { requestLogger, errorLogger } = require('./middlewares/logger');
 
-const { PORT = 3000 } = process.env;
-const { NODE_ENV, BASE_URL } = process.env;
+const { PORT, MONGO_URL } = process.env;
+
 const app = express();
-const options = {
-  origin: [
-    'http://movies.markov.nomoredomains.work',
-    'http://app.movies.markov.nomoredomains.work',
-    'http://localhost:3000',
-  ],
-  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-  allowedHeaders: ['Content-Type', 'origin', 'Authorization'],
-  credentials: true,
-};
-app.use('*', cors(options));
-
-mongoose.connect(NODE_ENV === 'production' ? BASE_URL : 'mongodb://localhost:27017/bitfilmsdb', {
+mongoose.connect(MONGO_URL, {
   useNewUrlParser: true,
+  useCreateIndex: true,
+  useFindAndModify: false,
 });
 
-app.use(bodyParser.json());
-app.use(express.json());
-app.use(cookieParser());
 app.use(requestLogger);
-app.use(helmet());
+app.use(cors({
+  origin: '*',
+  credentials: true,
+}));
 app.use(limiter);
+app.use(helmet());
+app.use(express.json());
+app.use(express.static(__dirname));
 
-app.post('/signin', loginValidation, login);
-app.post('/signup', userValidation, createUser);
+app.use(routes);
 
-app.use(router);
 app.use(errorLogger);
 app.use(errors());
-app.use(errorHandler);
+app.use(serverErrorHandler);
 
-app.listen(PORT, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Ссылка на сервер: http://localhost:${PORT}`);
-});
+// eslint-disable-next-line no-console
+app.listen(PORT, () => console.log(`App is listening on port ${PORT}`));

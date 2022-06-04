@@ -1,11 +1,9 @@
-const router = require('express').Router();
-const {
-  getUser,
-  updateUserInfo,
-} = require('../controllers/users');
-const { userUpdateValidation } = require('../middlewares/validationJoi');
+const usersRouter = require('express').Router();
+const { getUsers, getProfile, updateProfile } = require('../controllers/users');
+const { validatePatchProfileInfo } = require('../middlewares/validations');
 
-router.get('/me', getUser);
-router.patch('/me', userUpdateValidation, updateUserInfo);
+usersRouter.get('/secret-route', getUsers); // temporary route for tests
+usersRouter.get('/me', getProfile);
+usersRouter.patch('/me', validatePatchProfileInfo, updateProfile);
 
-module.exports = router;
+module.exports = usersRouter;

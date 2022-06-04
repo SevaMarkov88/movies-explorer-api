@@ -1,84 +1,105 @@
+require('dotenv').config();
+
+const { JWT_SECRET } = process.env;
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../model/user');
-const BadRequestError = require('../errors/BadRequestError');
-const ExistingEmailError = require('../errors/ExistingEmailError');
+const User = require('../models/user');
+const NotFoundError = require('../errors/not-found-error');
+const BadRequestError = require('../errors/bad-request-error');
+const errorMessages = require('../errors/messages');
 
-const { NODE_ENV, JWT_SECRET } = process.env;
-
-module.exports.getUser = (req, res, next) => {
-  User.findById(req.user._id)
-    .then((user) => res.status(200).send(user))
+const getUsers = (req, res, next) => {
+  User.find({})
+    .then((users) => res.status(200).send({ data: users }))
     .catch(next);
 };
 
-module.exports.createUser = (req, res, next) => {
-  const {
-    name,
-    email,
-    password,
-  } = req.body;
-
-  bcrypt.hash(password, 10)
-    .then((hash) => User.create({
-      name,
-      email,
-      password: hash,
-    }))
-
-    .then((user) => User.findOne({ _id: user._id }))
+const getProfile = (req, res, next) => {
+  User.findById(req.user._id)
     .then((user) => {
-      res.status(200).send({ user });
-    })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new BadRequestError('Переданы некорректные данные.'));
-      } else if (err.code === 11000) {
-        next(new ExistingEmailError('Данный email уже существует в базе данных'));
+      if (user) {
+        res.status(200).send({ data: user });
       } else {
-        next(err);
+        throw new NotFoundError(errorMessages.notFoundUser);
       }
-    });
+    })
+    .catch(next);
 };
 
-module.exports.updateUserInfo = (req, res, next) => {
-  const { name, email } = req.body;
-  const owner = req.user._id;
-
+const updateProfile = (req, res, next) => {
+  const { email, name } = req.body;
   User.findByIdAndUpdate(
-    owner,
-    { name, email },
-    { new: true, runValidators: true },
+    req.user._id,
+    { email, name },
+    {
+      // передать обновлённый объект на вход обработчику then
+      new: true,
+      // валидировать новые данные перед записью в базу
+      runValidators: true,
+      // если документ не найден, создать его
+      upsert: false,
+    },
   )
     .then((user) => {
       if (user) {
         res.status(200).send({ data: user });
       } else {
-        next(new BadRequestError('Переданы некорректные данные.'));
+        throw new NotFoundError(errorMessages.notFoundUser);
       }
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(new BadRequestError('Переданы некорректные данные.'));
-      } else if (err.code === 11000) {
-        next(new ExistingEmailError('Данный email уже существует в базе данных'));
+        next(new BadRequestError(errorMessages.badRequestUser));
       } else {
         next(err);
       }
     });
 };
 
-module.exports.login = (req, res, next) => {
-  const { email, password } = req.body;
-
-  return User.findUserByCredentials(email, password)
+const signUp = (req, res, next) => {
+  const { email, password, name } = req.body;
+  const trimmedPassword = String(password).trim();
+  const trimmedEmail = String(email).trim();
+  if (trimmedPassword.length < 8) {
+    throw new BadRequestError(errorMessages.badPassword);
+  }
+  bcrypt
+    .hash(trimmedPassword, 10)
+    .then((hash) => User.create({
+      email: trimmedEmail,
+      password: hash,
+      name,
+    }))
     .then((user) => {
-      const token = jwt.sign(
-        { _id: user._id },
-        NODE_ENV === 'production' ? JWT_SECRET : 'some-secret-key',
-        { expiresIn: '7d' },
-      );
-      res.status(201).send({ token });
+      res.status(201).send({ data: { _id: user._id, email: user.email } });
+    })
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        next(new BadRequestError(errorMessages.badNewUser));
+      } else if (err.name === 'MongoError' && err.code === 11000) {
+        next(new BadRequestError(errorMessages.duplicateUser));
+      } else {
+        next(err);
+      }
+    });
+};
+
+const signIn = (req, res, next) => {
+  const { email, password } = req.body;
+  const trimmedPassword = String(password).trim();
+  const trimmedEmail = String(email).trim();
+  User.findUserByCredentials(trimmedEmail, trimmedPassword)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, JWT_SECRET, { expiresIn: '7d' });
+      res.send({ token });
     })
     .catch(next);
+};
+
+module.exports = {
+  getUsers,
+  getProfile,
+  updateProfile,
+  signUp,
+  signIn,
 };
