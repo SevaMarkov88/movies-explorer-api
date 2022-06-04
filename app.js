@@ -1,37 +1,62 @@
 require('dotenv').config();
 const express = require('express');
-const { errors } = require('celebrate');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
 const helmet = require('helmet');
 const cors = require('cors');
-const mongoose = require('mongoose');
-const router = require('./routes/index');
-const { requestLogger, errorLogger } = require('./middlewares/logger');
-const mainErrorHandler = require('./middlewares/mainErrorHandler');
-const limiter = require('./middlewares/limiter');
 
-const { NODE_ENV, BASE_URL } = process.env;
+const { errors } = require('celebrate');
+
+const { createUser, login } = require('./controllers/users');
+const { requestLogger, errorLogger } = require('./middlewares/logger');
+const { registerValid, loginValid } = require('./middlewares/validationJoi');
+const limiter = require('./middlewares/rateLimit');
+const errorHandler = require('./middlewares/errorHandler');
+
+// Слушаем 3000 порт
+const { PORT = 3000, NODE_ENV, BASE_URL } = process.env;
+
+const routesErrorsWay = require('./routes/index');
+const auth = require('./middlewares/auth');
 
 const app = express();
 
-const { PORT = 3000 } = process.env;
+app.use(cors(
+  {
+    origin: true,
+  },
+));
 
-app.use(cors());
+mongoose.connect(NODE_ENV === 'production' ? BASE_URL : 'mongodb://localhost:27017/moviesdb', { useNewUrlParser: true });
 
-mongoose
-  .connect(NODE_ENV === 'production' ? BASE_URL : '', {
-    useNewUrlParser: true,
-    useCreateIndex: true,
-    useFindAndModify: false,
-    useUnifiedTopology: true,
-  });
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(requestLogger);
-app.use(limiter);
+app.use(requestLogger); // подключаем логгер запросов
+
 app.use(helmet());
-app.use(express.json());
-app.use(router);
-app.use(errorLogger);
-app.use(errors());
-app.use(mainErrorHandler);
+app.use(limiter);
 
-app.listen(PORT);
+app.post('/signup', registerValid, createUser);
+app.post('/signin', loginValid, login);
+
+app.get('/crash-test', () => {
+  setTimeout(() => {
+    throw new Error('Сервер сейчас упадёт');
+  }, 0);
+});
+
+app.use(auth);
+
+app.use('/', routesErrorsWay);
+
+app.use(errorLogger); // подключаем логгер ошибок
+
+app.use(errors());
+
+app.use(errorHandler);
+
+app.listen(PORT, () => {
+  // Если всё работает, консоль покажет, какой порт приложение слушает
+  console.log(`App listening on port ${PORT}`);
+});
