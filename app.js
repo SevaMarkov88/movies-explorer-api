@@ -1,37 +1,37 @@
+require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const helmet = require('helmet');
 const { errors } = require('celebrate');
-const limiter = require('./middlewares/limiter');
-const routes = require('./routes');
-const serverErrorHandler = require('./middlewares/serverErrorHandler');
+const helmet = require('helmet');
+const cors = require('cors');
+const mongoose = require('mongoose');
+const router = require('./routes/index');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
+const mainErrorHandler = require('./middlewares/mainErrorHandler');
+const limiter = require('./middlewares/limiter');
 
-const { PORT, MONGO_URL } = process.env;
+const { NODE_ENV, BASE_URL } = process.env;
 
 const app = express();
-mongoose.connect(MONGO_URL, {
-  useNewUrlParser: true,
-  useCreateIndex: true,
-  useFindAndModify: false,
-});
+
+const { PORT = 3000 } = process.env;
+
+app.use(cors());
+
+mongoose
+  .connect(NODE_ENV === 'production' ? BASE_URL : '', {
+    useNewUrlParser: true,
+    useCreateIndex: true,
+    useFindAndModify: false,
+    useUnifiedTopology: true,
+  });
 
 app.use(requestLogger);
-app.use(cors({
-  origin: '*',
-  credentials: true,
-}));
 app.use(limiter);
 app.use(helmet());
 app.use(express.json());
-app.use(express.static(__dirname));
-
-app.use(routes);
-
+app.use(router);
 app.use(errorLogger);
 app.use(errors());
-app.use(serverErrorHandler);
+app.use(mainErrorHandler);
 
-// eslint-disable-next-line no-console
-app.listen(PORT, () => console.log(`App is listening on port ${PORT}`));
+app.listen(PORT);

@@ -1,16 +1,15 @@
-const Movie = require('../models/movie');
-const BadRequestError = require('../errors/bad-request-error');
-const ForbiddenError = require('../errors/forbidden-error');
-const errorMessages = require('../errors/messages');
+const BadRequestError = require('../errors/bad-request-err');
+const NotFoundError = require('../errors/not-found-err');
+const { Movie } = require('../models/movie');
 
-const getMovies = (req, res, next) => {
-  Movie.find({})
-    .then((movies) => res.status(200).send({ data: movies }))
+exports.getMovies = (req, res, next) => {
+  const owner = req.user._id;
+  Movie.find({ owner })
+    .then((movies) => res.status(200).send(movies))
     .catch(next);
 };
 
-const createMovie = (req, res, next) => {
-  const owner = req.user._id;
+exports.postMovie = (req, res, next) => {
   const {
     country,
     director,
@@ -24,6 +23,7 @@ const createMovie = (req, res, next) => {
     nameRU,
     nameEN,
   } = req.body;
+  const owner = req.user._id;
   Movie.create({
     country,
     director,
@@ -38,43 +38,28 @@ const createMovie = (req, res, next) => {
     nameRU,
     nameEN,
   })
-    .then((movie) => res.status(200).send({ data: movie }))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        // eslint-disable-next-line no-console
-        console.log(err);
-        next(new BadRequestError(errorMessages.badRequestMovie));
-      } else {
-        next(err);
-      }
-    });
+    .then((movie) => res.send({ data: movie }))
+    .catch(next);
 };
 
-const deleteMovie = (req, res, next) => {
-  const { movieId } = req.params;
-  const me = req.user._id;
-
-  Movie.findById(movieId)
+exports.deleteMovie = (req, res, next) => {
+  Movie.findById(req.params.movieId)
     .then((movie) => {
-      if (!movie) {
-        throw new BadRequestError(errorMessages.notFoundMovie);
+      if (!movie || movie.owner.toString() !== req.user._id) {
+        throw new NotFoundError('Нельзя удалить чужой фильм');
       }
-      if (me.toString() !== movie.owner.toString()) {
-        throw new ForbiddenError(errorMessages.notMyMovie);
-      }
-      Movie.deleteOne({ _id: movie._id })
-        .then((deleteInfo) => {
-          res.status(200).send({ deleteInfo });
+      movie
+        .remove()
+        .then(() => {
+          res.send({ message: 'Фильм удалён' });
         })
         .catch(next);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(new BadRequestError(errorMessages.notFoundMovie));
-      } else {
-        next(err);
+        throw new BadRequestError('Данные не прошли валидацию');
       }
-    });
+      throw err;
+    })
+    .catch(next);
 };
-
-module.exports = { getMovies, createMovie, deleteMovie };
