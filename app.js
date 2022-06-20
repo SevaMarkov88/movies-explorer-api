@@ -1,19 +1,16 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
 const { errors } = require('celebrate');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
-const helmet = require('helmet');
+const cors = require('cors');
 const router = require('./routes/index');
-const { login, createUser } = require('./controllers/users');
+const { login, createUser, signout } = require('./controllers/users');
 const errorHandler = require('./middlewares/errorHandler');
 const { userValidation, loginValidation } = require('./middlewares/validationJoi');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
-const limiter = require('./middlewares/limiter');
 
 const { PORT = 3000 } = process.env;
-const { NODE_ENV, BASE_URL } = process.env;
 const app = express();
 const options = {
   origin: [
@@ -29,19 +26,20 @@ const options = {
 };
 app.use('*', cors(options));
 
-mongoose.connect(NODE_ENV === 'production' ? BASE_URL : 'mongodb://localhost:27017/bitfilmsdb', {
+mongoose.connect('mongodb://localhost:27017/bitfilmsdb', {
   useNewUrlParser: true,
+}, (err) => {
+  if (err) throw err;
 });
 
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(cookieParser());
 app.use(requestLogger);
-app.use(helmet());
-app.use(limiter);
 
 app.post('/signin', loginValidation, login);
 app.post('/signup', userValidation, createUser);
+app.get('/signout', signout);
 
 app.use(router);
 app.use(errorLogger);
