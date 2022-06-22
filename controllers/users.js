@@ -74,14 +74,14 @@ module.exports.createUser = (req, res, next) => {
 module.exports.updateUserInfo = (req, res, next) => {
   const {
     name,
-    about,
+    email,
   } = req.body;
 
   User.findByIdAndUpdate(
     req.user._id,
     {
       name,
-      about,
+      email,
     },
     {
       new: true,
@@ -116,7 +116,7 @@ module.exports.login = (req, res, next) => {
           httpOnly: true,
           sameSite: true,
         });
-      res.status(201).send({ message: 'login sucsessful' });
+      res.status(201).send({ user });
     })
     .catch(next);
 };
