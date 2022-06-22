@@ -12,19 +12,8 @@ const { requestLogger, errorLogger } = require('./middlewares/logger');
 
 const { PORT = 3000 } = process.env;
 const app = express();
-const options = {
-  origin: [
-    'http://movies.markov.nomoredomains.work',
-    'http://app.movies.markov.nomoredomains.work',
-    'http://localhost:3000',
-  ],
-  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-  allowedHeaders: ['Content-Type', 'origin', 'Authorization'],
-  credentials: true,
-};
-app.use('*', cors(options));
+app.use(cors());
+app.use((req, res, next) => { res.header({ 'Access-Control-Allow-Origin': '*' }); next(); });
 
 mongoose.connect('mongodb://localhost:27017/bitfilmsdb', {
   useNewUrlParser: true,
